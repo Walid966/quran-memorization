@@ -18,8 +18,9 @@ class QuranPlayer {
         this.currentSurah = null;
         this.currentVerses = [];
         this.currentVerseIndex = 0;
-        this.remainingRepeats = 0;
+        this.verseRepeatCounts = {}; // تخزين عدد مرات التكرار لكل آية
         this.shouldPlayBasmala = false;
+        this.isRepeating = false; // متغير جديد لتتبع حالة التكرار
         
         this.initializeEventListeners();
         this.loadSurahs();
@@ -59,6 +60,9 @@ class QuranPlayer {
                 // تحديث قوائم الآيات
                 this.updateVerseDropdowns();
                 this.updateVerseDisplay();
+                
+                // إعادة تعيين عدد مرات التكرار لكل آية
+                this.verseRepeatCounts = {};
             }
         } catch (error) {
             console.error('خطأ في تحميل الآيات:', error);
@@ -81,8 +85,8 @@ class QuranPlayer {
             
             // إضافة جزء من نص الآية مع رقمها
             const shortText = ayah.text.substring(0, 30) + (ayah.text.length > 30 ? '...' : '');
-            startOption.textContent = `${ayah.numberInSurah} - ${shortText}`;
-            endOption.textContent = `${ayah.numberInSurah} - ${shortText}`;
+            startOption.textContent = `📝 ${ayah.numberInSurah} - ${shortText}`;
+            endOption.textContent = `📝 ${ayah.numberInSurah} - ${shortText}`;
             
             this.startVerse.appendChild(startOption);
             this.endVerse.appendChild(endOption);
@@ -106,9 +110,16 @@ class QuranPlayer {
             verseElement.className = 'verse';
             verseElement.dataset.index = index;
             
+            // إضافة عداد التكرار لكل آية
+            const repeatCount = this.verseRepeatCounts[index] || 0;
+            
             verseElement.innerHTML = `
                 <span class="verse-number">${verse.numberInSurah}</span>
                 <span class="verse-text">${verse.text}</span>
+                <div class="verse-repeat-count">
+                    <i class="fas fa-redo"></i>
+                    <span>${repeatCount}</span>
+                </div>
             `;
             
             this.versesContainer.appendChild(verseElement);
@@ -202,13 +213,13 @@ class QuranPlayer {
     
     async playVerse(index) {
         if (index >= this.currentVerses.length) {
-            if (this.remainingRepeats > 0) {
-                this.remainingRepeats--;
-                this.currentVerseIndex = 0;
-                this.shouldPlayBasmala = true;
-                await this.playVerse(0);
-            }
-            return;
+            // عند الانتهاء من جميع الآيات، نتوقف
+            this.currentVerseIndex = 0;
+            this.shouldPlayBasmala = true;
+            this.verseRepeatCounts = {};
+            this.isRepeating = false;
+            this.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+            return; // نتوقف هنا ولا نعيد التشغيل
         }
 
         try {
@@ -221,6 +232,10 @@ class QuranPlayer {
             this.currentVerseIndex = index;
             const verse = this.currentVerses[index];
             this.highlightVerse(index);
+            
+            if (!this.isRepeating) {
+                this.verseRepeatCounts[index] = 0;
+            }
             
             await new Promise(resolve => setTimeout(resolve, 100));
             await this.loadAudio(verse);
@@ -240,8 +255,8 @@ class QuranPlayer {
     
     initializeEventListeners() {
         this.playBtn.addEventListener('click', () => {
-            this.remainingRepeats = parseInt(this.repeatCount.value) - 1;
             this.shouldPlayBasmala = true;
+            this.verseRepeatCounts = {}; // إعادة تعيين عداد التكرار عند بدء التشغيل
             this.playVerse(0);
         });
         
@@ -254,12 +269,14 @@ class QuranPlayer {
         
         this.prevBtn.addEventListener('click', () => {
             if (this.currentVerseIndex > 0) {
+                this.verseRepeatCounts[this.currentVerseIndex] = 0; // إعادة تعيين عداد التكرار للآية الحالية
                 this.playVerse(this.currentVerseIndex - 1);
             }
         });
         
         this.nextBtn.addEventListener('click', () => {
             if (this.currentVerseIndex < this.currentVerses.length - 1) {
+                this.verseRepeatCounts[this.currentVerseIndex] = 0; // إعادة تعيين عداد التكرار للآية الحالية
                 this.playVerse(this.currentVerseIndex + 1);
             }
         });
@@ -282,9 +299,45 @@ class QuranPlayer {
         
         this.audio.addEventListener('timeupdate', () => this.updateProgress());
         
-        this.audio.addEventListener('ended', () => {
+        this.audio.addEventListener('ended', async () => {
             this.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
-            this.playVerse(this.currentVerseIndex + 1);
+            
+            const currentVerse = this.currentVerseIndex;
+            const repeatCount = parseInt(this.repeatCount.value);
+            
+            // زيادة عداد التكرار للآية الحالية
+            this.verseRepeatCounts[currentVerse] = (this.verseRepeatCounts[currentVerse] || 0) + 1;
+            
+            // تحديث عرض عداد التكرار
+            const verseElement = this.versesContainer.querySelector(`.verse[data-index="${currentVerse}"]`);
+            if (verseElement) {
+                const repeatCountElement = verseElement.querySelector('.verse-repeat-count span');
+                if (repeatCountElement) {
+                    repeatCountElement.textContent = this.verseRepeatCounts[currentVerse];
+                }
+            }
+            
+            // إذا وصل عدد التكرار للعدد المطلوب، انتقل للآية التالية
+            if (this.verseRepeatCounts[currentVerse] >= repeatCount) {
+                this.isRepeating = false;
+                this.verseRepeatCounts[currentVerse] = 0;
+                
+                // إذا كانت آخر آية، نتوقف
+                if (currentVerse >= this.currentVerses.length - 1) {
+                    this.currentVerseIndex = 0;
+                    this.shouldPlayBasmala = true;
+                    this.verseRepeatCounts = {};
+                    this.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                    return; // نتوقف هنا
+                } else {
+                    // الانتقال للآية التالية
+                    await this.playVerse(currentVerse + 1);
+                }
+            } else {
+                // تكرار الآية الحالية
+                this.isRepeating = true;
+                await this.playVerse(currentVerse);
+            }
         });
         
         this.startVerse.addEventListener('change', () => {
