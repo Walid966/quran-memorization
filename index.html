@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحفيظ القرآن الكريم بالتجويد</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts - Amiri for Arabic text -->
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>تحفيظ القرآن الكريم بالتجويد</h1>
+        </header>
+        
+        <main>
+            <div class="controls">
+                <div class="select-group">
+                    <label for="reciter-select">اختر القارئ:</label>
+                    <select id="reciter-select" class="arabic-input">
+                        <option value="Maher_AlMuaiqly_64kbps">الشيخ ماهر المعيقلي</option>
+                        <option value="Husary_64kbps">الشيخ محمود خليل الحصري</option>
+                        <option value="Mohammad_al_Tablaway_64kbps">الشيخ محمد الطبلاوي</option>
+                        <option value="Abu_Bakr_Ash-Shaatree_64kbps">الشيخ أبو بكر الشاطري</option>
+                    </select>
+                </div>
+
+                <div class="select-group">
+                    <label for="surah-select">اختر السورة:</label>
+                    <select id="surah-select" class="arabic-input"></select>
+                </div>
+                
+                <div class="verse-range">
+                    <div class="select-group">
+                        <label for="start-verse">من الآية:</label>
+                        <select id="start-verse" class="arabic-input"></select>
+                    </div>
+                    
+                    <div class="select-group">
+                        <label for="end-verse">إلى الآية:</label>
+                        <select id="end-verse" class="arabic-input"></select>
+                    </div>
+                </div>
+                
+                <div class="select-group">
+                    <label for="repeat-count">عدد مرات التكرار:</label>
+                    <input type="number" id="repeat-count" min="1" value="1" class="arabic-input">
+                </div>
+                
+                <button id="play-btn" class="primary-btn">
+                    <i class="fas fa-play"></i> تشغيل
+                </button>
+            </div>
+            
+            <div class="quran-display">
+                <div id="verses-container"></div>
+            </div>
+            
+            <div class="audio-controls">
+                <button id="prev-btn" class="control-btn">
+                    <i class="fas fa-step-backward"></i>
+                </button>
+                <button id="play-pause-btn" class="control-btn">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button id="next-btn" class="control-btn">
+                    <i class="fas fa-step-forward"></i>
+                </button>
+                <div class="progress-container">
+                    <div class="progress-bar"></div>
+                </div>
+                <span class="time-display">00:00 / 00:00</span>
+            </div>
+        </main>
+    </div>
+    
+    <audio id="quran-audio"></audio>
+    <script src="app.js"></script>
+</body>
+</html> 
